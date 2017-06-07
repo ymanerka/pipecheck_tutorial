@@ -1,0 +1,11 @@
+doc/
+*.glob
+*.vo
+*.d
+src/Main.native
+src/Makefile.coq
+src/PipeGraph.ml
+src/PipeGraph.mli
+src/PipeGraphLinux.ml
+src/_build/
+src/pipecheck
