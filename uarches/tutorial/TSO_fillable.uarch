@@ -36,17 +36,12 @@ StageName 2 "Writeback".
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-StageName 3 "MemoryHierarchy".
+StageName _ "___________".
+StageName _ "MemoryHierarchy".
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % END MODIFICATION REGION                                                     %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-Axiom "Reads_Path":
-forall microops "i",
-IsAnyRead i =>
-AddEdges [((i, Fetch),      (i, Execute),     "path");
-          ((i, Execute),     (i, Writeback),    "path")].
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 2. Ensure that writes go through store buffer before reaching memory.       %
@@ -62,12 +57,19 @@ forall microops "i",
 IsAnyWrite i =>
 AddEdges [((i, Fetch),      (i, Execute),     "path");
           ((i, Execute),     (i, Writeback),    "path");
-          ((i, Writeback),     (i, (0, MemoryHierarchy)),    "path")
+          ((i, _________),     (i, ___________),    "path");
+          ((i, ___________),     (i, (0, _______________)),    "path")
           ].
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % END MODIFICATION REGION                                                     %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Axiom "Reads_Path":
+forall microops "i",
+IsAnyRead i =>
+AddEdges [((i, Fetch),      (i, Execute),     "path");
+          ((i, Execute),     (i, Writeback),    "path")].
 
 Axiom "PO_Fetch":
 forall microops "i1",
@@ -102,28 +104,12 @@ AddEdge ((i1, Writeback), (i2, Writeback), "PPO", "darkgreen").
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% END MODIFICATION REGION                                                     %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 4. Ensure that a write is only released from the store buffer after all     %
-%    prior writes from that core have reached memory.                         %
-%                                                                             %
-% Modify the axiom below to enforce that if two writes on the same core go    %
-% through the store buffer in order, then the first write reaches memory      %
-% before the second one can leave the store buffer.                           %
-%                                                                             %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-Axiom "EnforceWriteOrdering":
-  forall microop "w",
-  forall microop "i",
-  (IsAnyWrite w /\ ~SameMicroop w i /\ SameCore w i) =>
-    EdgeExists ((w, Execute),  (i, Execute), "") =>
-      AddEdge ((w, (0, MemoryHierarchy)), (i, Execute), "one_at_a_time", "green").
+Axiom "StoreBuffer_stage_is_in_order":
+forall microops "i1",
+forall microops "i2",
+IsAnyWrite i1 /\ IsAnyWrite i2 /\ ________ i1 i2 =>
+EdgeExists ((i1, _________),  (i2, _________), "") =>
+AddEdge ((i1, ___________), (i2, ___________), "PPO", "darkgreen").
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % END MODIFICATION REGION                                                     %
@@ -143,6 +129,26 @@ Axiom "EnforceFinalWrite":
    ~SameMicroop w w' /\ DataFromFinalStateAtPA w') =>
       AddEdge ((w, (0, MemoryHierarchy)), (w', (0, MemoryHierarchy)), "ws_final", "red").
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 4. Ensure that a write is only released from the store buffer after all     %
+%    prior writes from that core have reached memory.                         %
+%                                                                             %
+% Modify the axiom below to enforce that if two writes on the same core go    %
+% through the store buffer in order, then the first write reaches memory      %
+% before the second one can leave the store buffer.                           %
+%                                                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Axiom "EnforceWriteOrdering":
+  forall microop "w",
+  forall microop "w'",
+  (IsAnyWrite w /\ __________ w' /\ ____________ w w') =>
+      AddEdge ((w, (0, _______________)), (w', ___________), "one_at_a_time", "green").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% END MODIFICATION REGION                                                     %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % Constraints on values read by loads follow.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -161,6 +167,11 @@ Axiom "EnforceFinalWrite":
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+DefineMacro "STBEmpty":
+  % Store buffer is empty for the address we want to read.
+  forall microop "w", (
+    (__________ w /\ ___________________ w i /\ ____________ w i) =>
+    AddEdge ((w, (0, _______________)), (i, _______), "STBEmpty", "purple")).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -217,13 +228,20 @@ Axiom "Read_Values":
 forall microops "i",
 IsAnyRead i =>
 (
-      ExpandMacro BeforeAllWrites
-      \/
-      (
-        ExpandMacro No_SameAddrWrites_Btwn_Src_And_Read
-        /\
-        ExpandMacro Before_Or_After_Every_SameAddrWrite
-      )
+% Uncomment the commented lines if you add the (advanced) store buffer forwarding.
+%  ExpandMacro ______ \/
+%  (
+       ExpandMacro ________ /\
+       (
+          ExpandMacro BeforeAllWrites
+          \/
+          (
+            ExpandMacro No_SameAddrWrites_Btwn_Src_And_Read
+            /\
+            ExpandMacro Before_Or_After_Every_SameAddrWrite
+          )
+       )
+%  )
 ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -249,7 +267,19 @@ IsAnyRead i =>
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
+DefineMacro "STBFwd":
+  % Forward from the store buffer
+  exists microop "w", (
+    __________ w /\
+    ________ w i /\
+    ___________________ w i /\
+    ________ w i /\
+    AddEdges [((w, Execute), (i, Execute), "STBFwd", "red");
+              ((i, Execute), (w, (0, MemoryHierarchy)), "STBFwd", "purple")]) /\
+    % Ensure the STB entry is the latest one.
+    ~exists microop "w'",
+    __________ w' /\ ___________________ w w' /\
+    ____________ w w' /\ ____________ w' i.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % END MODIFICATION REGION                                                     %
@@ -271,7 +301,17 @@ IsAnyRead i =>
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
+Axiom "Fence_Ordering":
+forall microops "f",
+IsAnyFence f =>
+AddEdges [((f, Fetch),       (f, Execute),      "path");
+          ((f, Execute),     (f, Writeback), "path")]
+/\
+(
+  forall microops "w",
+    (__________ w /\ ____________ w f) =>
+      AddEdge ((w, (0, _______________)), (f, _______), "fence", "orange")
+).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % END MODIFICATION REGION                                                     %

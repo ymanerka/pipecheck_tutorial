@@ -15,12 +15,6 @@ StageName 1 "Execute".
 StageName 2 "Writeback".
 StageName 3 "MemoryHierarchy".
 
-Axiom "Reads_Path":
-forall microops "i",
-IsAnyRead i =>
-AddEdges [((i, Fetch),      (i, Execute),     "path");
-          ((i, Execute),     (i, Writeback),    "path")].
-
 Axiom "Writes_Path":
 forall microops "i",
 IsAnyWrite i =>
@@ -28,6 +22,12 @@ AddEdges [((i, Fetch),      (i, Execute),     "path");
           ((i, Execute),     (i, Writeback),    "path");
           ((i, Writeback),     (i, (0, MemoryHierarchy)),    "path")
           ].
+
+Axiom "Reads_Path":
+forall microops "i",
+IsAnyRead i =>
+AddEdges [((i, Fetch),      (i, Execute),     "path");
+          ((i, Execute),     (i, Writeback),    "path")].
 
 Axiom "PO_Fetch":
 forall microops "i1",
@@ -48,13 +48,6 @@ forall microops "i2",
 SameCore i1 i2 /\ EdgeExists ((i1, Fetch),  (i2, Fetch), "") =>
 AddEdge ((i1, Writeback), (i2, Writeback), "PPO", "darkgreen").
 
-Axiom "EnforceWriteOrdering":
-  forall microop "w",
-  forall microop "i",
-  (IsAnyWrite w /\ ~SameMicroop w i /\ SameCore w i) =>
-    EdgeExists ((w, Execute),  (i, Execute), "") =>
-      AddEdge ((w, (0, MemoryHierarchy)), (i, Execute), "one_at_a_time", "green").
-
 Axiom "WriteSerialization":
 forall microops "i1",
 forall microops "i2",
@@ -68,6 +61,12 @@ Axiom "EnforceFinalWrite":
   (IsAnyWrite w /\ IsAnyWrite w' /\ SamePhysicalAddress w w' /\
    ~SameMicroop w w' /\ DataFromFinalStateAtPA w') =>
       AddEdge ((w, (0, MemoryHierarchy)), (w', (0, MemoryHierarchy)), "ws_final", "red").
+
+Axiom "EnforceWriteOrdering":
+  forall microop "w",
+  forall microop "i",
+  (IsAnyWrite w /\ ProgramOrder w i) =>
+      AddEdge ((w, (0, MemoryHierarchy)), (i, Execute), "one_at_a_time", "green").
 
 % Constraints on values read by loads follow.
 
