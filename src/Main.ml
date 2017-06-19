@@ -220,19 +220,27 @@ let first_observable_graph programs initial =
     | PipeGraph.None -> false
   in
 
-  let result_string =
-    match (allowed, observable) with
-    | (Permitted, true) -> "Allowed/Observable"
-    | (Permitted, false) -> "Allowed/Not Observable (Stricter than necessary) !"
-    | (Forbidden, true) -> "Forbidden/Observable (BUG) !"
-    | (Forbidden, false) -> "Forbidden/Not observable"
-    | (Required, true) -> "Required/Observable"
-    | (Required, false) -> "Required/Not Observable (BUG) !"
-    | (Unobserved, true) -> "Unobserved/Observable (Weaker than real HW?) !"
-    | (Unobserved, false) -> "Unobserved/Not observable (Weaker than spec, same as real HW) !"
+  let input_string =
+    match allowed with
+    | Permitted -> "Allowed"
+    | Forbidden -> "Forbidden"
+    | Required -> "Required"
+    | Unobserved -> "Unobserved"
   in
 
-  Printf.printf "// Input %s: %s\n" !input_filename result_string
+  let result_string =
+    match (allowed, observable) with
+    | (Permitted, true) -> "Observable"
+    | (Permitted, false) -> "Not Observable (Stricter than necessary) !"
+    | (Forbidden, true) -> "Observable (BUG) !"
+    | (Forbidden, false) -> "Not observable"
+    | (Required, true) -> "Observable"
+    | (Required, false) -> "Not Observable (BUG) !"
+    | (Unobserved, true) -> "Observable (Weaker than real HW?) !"
+    | (Unobserved, false) -> "Not observable (Weaker than spec, same as real HW) !"
+  in
+
+  Printf.printf "// Input %s: %s\n// Output: %s\n" !input_filename input_string result_string
 
 let _ = first_observable_graph programs initial_conditions;
 
