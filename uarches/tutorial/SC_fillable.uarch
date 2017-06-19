@@ -109,7 +109,7 @@ DefineMacro "BeforeAllWrites":
   DataFromInitialStateAtPA i /\
   forall microop "w", (
     (IsAnyWrite w /\ SamePhysicalAddress w i /\ ~SameMicroop i w) =>
-    AddEdge ((__________), (_______________________), "fr", "red")).
+    AddEdge ((i, _______), (w, (0, _______________)), "fr", "red")).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % END MODIFICATION REGION                                                     %

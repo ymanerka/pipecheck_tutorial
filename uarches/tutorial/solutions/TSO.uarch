@@ -133,9 +133,9 @@ Axiom "EnforceFinalWrite":
 % 4. Ensure that a write is only released from the store buffer after all     %
 %    prior writes from that core have reached memory.                         %
 %                                                                             %
-% Modify the axiom below to enforce that if two writes on the same core go    %
-% through the store buffer in order, then the first write reaches memory      %
-% before the second one can leave the store buffer.                           %
+% Modify the axiom below to enforce that if a write w is in program order     %
+% before a write w', then the first write (w) reaches memory before the       %
+% second one (w') can leave the store buffer.                                 %
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -156,8 +156,8 @@ Axiom "EnforceWriteOrdering":
 %    has no entries for the address of the load.                              %
 %                                                                             %
 % Create a macro below to enforce that all writes before an instruction "i"   %
-% in program order have reached memory before the Execute stage of            %
-% instruction "i".                                                            %
+% in program order that write to the address of "i" have reached memory       %
+% before the Execute stage of instruction "i".                                %                           %
 %                                                                             %
 % Remember that since this is a macro, it will not affect execution unless it %
 % is included in an axiom through the use of "ExpandMacro <macro name>".      %
@@ -216,10 +216,10 @@ DefineMacro "No_SameAddrWrites_Btwn_Src_And_Read":
 % store buffer has no entries for the address of the load (by expanding the   %
 % STBEmpty macro).                                                            %
 %                                                                             %
-% If you decide to do the Advanced portion of this hands-on (reading your own %
-% write early), include the macro detailing forwarding from the store buffer  %
-% as an alternate option to the cases of reading from memory that are         %
-% currently below.                                                            %
+% If you decide to do the Advanced portion of this hands-on (store buffer     %
+% forwarding), uncomment the macro expansion detailing forwarding from the    %
+% store buffer as an alternate option to the cases of reading from memory     %
+% that are currently below.                                                   %        %
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -294,9 +294,6 @@ DefineMacro "STBFwd":
 % three stages: Fetch, Execute, and Writeback. In addition, the fence should  %
 % ensure that all writes prior to the fence in program order must reach       %
 % memory before the Execute stage of the fence.                               %
-%                                                                             %
-% Hint: You can use the predicate "IsAnyFence <instr identifier>" to check    %
-%       whether an instruction is a fence or not.                             %
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
