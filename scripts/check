@@ -1,0 +1,47 @@
+#!/usr/bin/python
+import os.path
+import argparse
+
+DEFAULT_UARCH_DIR = "/home/check/pipecheck_tutorial/uarches/"
+DEFAULT_PC_DIR = "/home/check/pipecheck_tutorial/src/"
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-i', '--input-file', required=True, help="The input .test file to run through Check")
+parser.add_argument('-m', '--microarch', required=True, help="The microarchitecture description against which to check the litmus test")
+parser.add_argument('-v', '--verbose', type=int, default=2, help="The verbosity level of output to be generated (levels 0-7)")
+parser.add_argument('-o', '--output-dir', default=".", help="The name of the output directory (default is current directory)")
+parser.add_argument('-f', '--output-file', default="", help="The name of the output file (default output file for <input>.test is <input>.[gv|pdf])")
+parser.add_argument('-d', '--microarch-dir', default=DEFAULT_UARCH_DIR, help="The directory in which to find the microarchitecture (if different from %s)" % DEFAULT_UARCH_DIR)
+parser.add_argument('-p', '--pipecheck-dir', default=DEFAULT_PC_DIR, help="The directory in which to find the pipecheck binary (if different from %s)" % DEFAULT_PC_DIR)
+parser.add_argument('-n', '--no-gen-pdf', default=False, action='store_true')
+
+args = parser.parse_args()
+
+out_file_base = os.path.splitext(os.path.basename(args.input_file))[0]
+out_gv = "%s.gv" % out_file_base
+out_ps = "%s.ps" % out_file_base
+out_pdf = "%s.pdf" % out_file_base
+
+if args.output_file != "":
+    if args.no_gen_pdf:
+        out_gv = args.output_file
+
+out_gv_dir = "."
+
+if args.no_gen_pdf:
+    out_gv_dir = args.output_dir
+
+cmds = []
+cmds.append("%s/pipecheck -v %d -i %s -o %s/%s -m %s/%s" % (args.pipecheck_dir, args.verbose, args.input_file, out_gv_dir, out_gv, args.microarch_dir, args.microarch))
+
+if not(args.no_gen_pdf):
+    cmds.append("neato -Tps2 -o %s %s" % (out_ps, out_gv))
+    cmds.append("ps2pdf %s" % out_ps)
+    cmds.append("rm %s" % out_ps)
+    cmds.append("rm %s" % out_gv)
+    if args.output_file != "":
+        cmds.append("mv %s %s/%s" % (out_pdf, args.output_dir, args.output_file))
+
+for cmd in cmds:
+    print cmd
+    os.system(cmd)
