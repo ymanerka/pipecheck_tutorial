@@ -1,0 +1,61 @@
+#!/usr/bin/python
+import os
+import argparse
+import subprocess
+import re
+import sys
+
+DEFAULT_UARCH_DIR = "/home/check/pipecheck_tutorial/uarches/"
+DEFAULT_PC_DIR = "/home/check/pipecheck_tutorial/src/"
+DEFAULT_OUT_DIR = "/home/check/pipecheck_tutorial/out/"
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-t', '--test-dir', required=True, help="The directory of tests to run through Check for the microarchitecture to test")
+parser.add_argument('-m', '--microarch', required=True, help="The microarchitecture description against which to check the litmus tests")
+parser.add_argument('-v', '--verbose', type=int, default=0, help="The verbosity level of output to be generated (levels 0-7)")
+parser.add_argument('-o', '--output-dir', default=DEFAULT_OUT_DIR, help="The name of the output directory (default is %s)" % DEFAULT_OUT_DIR)
+parser.add_argument('-d', '--microarch-dir', default=DEFAULT_UARCH_DIR, help="The directory in which to find the microarchitecture (if different from %s)" % DEFAULT_UARCH_DIR)
+parser.add_argument('-p', '--pipecheck-dir', default=DEFAULT_PC_DIR, help="The directory in which to find the pipecheck binary (if different from %s)" % DEFAULT_PC_DIR)
+
+def getOutput(cmd):
+    return subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout.read()
+
+args = parser.parse_args()
+
+# First get all the tests to run.
+cmd = "find %s -type f" % args.test_dir
+tests = getOutput(cmd).split('\n')[:-1]
+
+correct = 0
+strict = 0
+buggy = 0
+
+for test in tests:
+    out_file = "%s.gv" % os.path.basename(test)
+    # Run the test.
+    cmd = "%s/pipecheck -v %d -i %s -o %s/%s -m %s/%s" % (args.pipecheck_dir, args.verbose, test, args.output_dir, out_file, args.microarch_dir, args.microarch)
+    print cmd
+    result = getOutput(cmd)
+    print result
+
+    lines = result.split('\n')
+
+    for line in lines:
+        out_match = re.match("// Output: .*", line)
+        if out_match:
+            # Let's see if we were buggy, strict or neither.
+            bug_match = re.match("// Output: .*BUG.*", line)
+            strict_match = re.match("// Output: .*Strict.*", line)
+
+            if bug_match:
+                buggy = buggy + 1
+            elif strict_match:
+                strict = strict + 1
+            else:
+                correct = correct + 1
+
+print "Final Results:"
+print "Number of Tests: %d" % (correct + strict + buggy)
+print "Correct:         %d" % correct
+print "Strict:          %d" % strict
+print "Buggy:           %d" % buggy
