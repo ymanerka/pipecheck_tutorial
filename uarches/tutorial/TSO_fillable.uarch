@@ -99,8 +99,7 @@ AddEdge ((i1, Writeback), (i2, Writeback), "PPO", "darkgreen").
 % as well.                                                                    %
 %                                                                             %
 % Hint: You can use the Writeback_stage_is_in_order axiom above as a starting %
-%       point, but remember that this axiom should only apply to pairs of     %
-%       writes.                                                               %
+%       point.                                                                %
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

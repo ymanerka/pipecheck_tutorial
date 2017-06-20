@@ -96,7 +96,7 @@ Axiom "EnforceWriteOrdering":
 % Constraints on values read by loads follow.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 2. If a read reads from the initial state of memory, it must execute before %
+% 3. If a read reads from the initial state of memory, it must execute before %
 %    any write to that address in the program reaches memory.                 %
 %                                                                             %
 % Fill in the following axiom so that the above statement is true.            %
@@ -123,7 +123,7 @@ DefineMacro "Before_Or_After_Every_SameAddrWrite":
      AddEdge ((i, Execute), (w, (0, MemoryHierarchy)), "fr", "red"))).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 3. A read must execute after its source write reaches memory, and there     %
+% 4. A read must execute after its source write reaches memory, and there     %
 %    must not exist any writes to that address in between the source write    %
 %    and the execution of the read.                                           %
 %                                                                             %
