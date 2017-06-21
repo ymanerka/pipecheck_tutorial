@@ -1,0 +1,30 @@
+#!/usr/bin/python
+import os.path
+import argparse
+
+DEFAULT_UARCH_DIR = "/home/check/pipecheck_tutorial/uarches/"
+DEFAULT_PC_DIR = "/home/check/pipecheck_tutorial/src/"
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-i', '--input-file', required=True, help="The input .gv file to generate a PDF from")
+parser.add_argument('-o', '--output-dir', default=".", help="The output directory name (default is current directory)")
+parser.add_argument('-f', '--output-file', default="", help="The name of the output file (default output file for <input>.gv is <input>.pdf)")
+parser.add_argument('-d', '--microarch-dir', default=DEFAULT_UARCH_DIR, help="The directory in which to find the microarchitecture (if different from %s)" % DEFAULT_UARCH_DIR)
+parser.add_argument('-p', '--pipecheck-dir', default=DEFAULT_PC_DIR, help="The directory in which to find the pipecheck binary (if different from %s)" % DEFAULT_PC_DIR)
+
+args = parser.parse_args()
+
+out_file_base = os.path.splitext(os.path.basename(args.input_file))[0]
+
+print "Generating graph for %s" % args.input_file
+
+cmds = []
+cmds.append("neato -Tps2 -o %s.ps %s" % (out_file_base, args.input_file))
+cmds.append("ps2pdf %s.ps" % out_file_base)
+cmds.append("rm %s.ps" % out_file_base)
+cmds.append("rm %s" % args.input_file)
+if args.output_file != "":
+    cmds.append("mv %s.pdf %s" % (out_file_base, args.output_file))
+
+for cmd in cmds:
+    os.system(cmd)
