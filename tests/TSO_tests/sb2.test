@@ -6,6 +6,7 @@ Alternative
 4 1 0 0 (Read normal (VA 0 0) (PA 0 0) (Data 0))
 Relationship po 0 0 -> 1 0
 Relationship po 1 0 -> 2 0
+Relationship po 0 0 -> 2 0
 Relationship po 3 0 -> 4 0
 Relationship rf 2 0 -> 3 0
 Relationship fr 4 0 -> 0 0
