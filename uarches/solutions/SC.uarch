@@ -13,21 +13,12 @@
 StageName 0 "Fetch".
 StageName 1 "Execute".
 StageName 2 "Writeback".
-StageName 3 "MemoryHierarchy".
 
-Axiom "Writes_Path":
+Axiom "Instr_Path":
 forall microops "i",
-IsAnyWrite i =>
 AddEdges [((i, Fetch),      (i, Execute),     "path");
-          ((i, Execute),     (i, Writeback),    "path");
-          ((i, Writeback),     (i, (0, MemoryHierarchy)),    "path")
+          ((i, Execute),     (i, Writeback),    "path")
           ].
-
-Axiom "Reads_Path":
-forall microops "i",
-IsAnyRead i =>
-AddEdges [((i, Fetch),      (i, Execute),     "path");
-          ((i, Execute),     (i, Writeback),    "path")].
 
 Axiom "PO_Fetch":
 forall microops "i1",
@@ -66,15 +57,15 @@ Axiom "WriteSerialization":
 forall microops "i1",
 forall microops "i2",
     ( ~(SameMicroop i1 i2) /\ IsAnyWrite i1 /\ IsAnyWrite i2 /\ SamePhysicalAddress i1 i2) =>
-    (EdgeExists ((i1, (0, MemoryHierarchy)), (i2, (0, MemoryHierarchy)), "ws", "red") \/
-     EdgeExists ((i2, (0, MemoryHierarchy)), (i1, (0, MemoryHierarchy)), "ws", "red")).
+    (EdgeExists ((i1, Writeback), (i2, Writeback), "ws", "red") \/
+     EdgeExists ((i2, Writeback), (i1, Writeback), "ws", "red")).
 
 Axiom "EnforceFinalWrite":
   forall microop "w",
   forall microop "w'",
   (IsAnyWrite w /\ IsAnyWrite w' /\ SamePhysicalAddress w w' /\
    ~SameMicroop w w' /\ DataFromFinalStateAtPA w') =>
-      AddEdge ((w, (0, MemoryHierarchy)), (w', (0, MemoryHierarchy)), "ws_final", "red").
+      AddEdge ((w, Writeback), (w', Writeback), "ws_final", "red").
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 2. All instructions on a core that are after a write in program order       %
@@ -84,11 +75,11 @@ Axiom "EnforceFinalWrite":
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Axiom "EnforceWriteOrdering":
+Axiom "EnforceWritePPO":
   forall microop "w",
   forall microop "i",
-  (IsAnyWrite w /\ ProgramOrder w i) =>
-      AddEdge ((w, (0, MemoryHierarchy)), (i, Execute), "one_at_a_time", "green").
+  (IsAnyWrite w /\ SameCore w i /\ EdgeExists((w, Fetch), (i, Fetch), "")) =>
+      AddEdge ((w, Writeback), (i, Execute), "EWO", "green").
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % END MODIFICATION REGION                                                     %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -109,7 +100,7 @@ DefineMacro "BeforeAllWrites":
   DataFromInitialStateAtPA i /\
   forall microop "w", (
     (IsAnyWrite w /\ SamePhysicalAddress w i /\ ~SameMicroop i w) =>
-    AddEdge ((i, Execute), (w, (0, MemoryHierarchy)), "fr", "red")).
+    AddEdge ((i, Execute), (w, Writeback), "fr", "red")).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % END MODIFICATION REGION                                                     %
@@ -119,8 +110,8 @@ DefineMacro "Before_Or_After_Every_SameAddrWrite":
   % Either before or after every write to the same physical address
   forall microop "w", (
     (IsAnyWrite w /\ SamePhysicalAddress w i) =>
-    (AddEdge ((w, (0, MemoryHierarchy)), (i, Execute), "wsrf", "crimson") \/
-     AddEdge ((i, Execute), (w, (0, MemoryHierarchy)), "fr", "red"))).
+    (AddEdge ((w, Writeback), (i, Execute), "wsrf", "crimson") \/
+     AddEdge ((i, Execute), (w, Writeback), "fr", "red"))).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 4. A read must execute after its source write reaches memory, and there     %
@@ -136,11 +127,11 @@ DefineMacro "No_SameAddrWrites_Btwn_Src_And_Read":
   % Read from "w", and there must not exist any writes w' in between w and i
   exists microop "w", (
     IsAnyWrite w /\ SamePhysicalAddress w i /\ SameData w i /\
-    AddEdge ((w, (0, MemoryHierarchy)), (i, Execute), "rf", "red") /\
+    AddEdge ((w, Writeback), (i, Execute), "rf", "red") /\
     ~(exists microop "w'",
       IsAnyWrite w' /\ SamePhysicalAddress i w' /\ ~SameMicroop w w' /\
-      EdgesExist [((w , (0, MemoryHierarchy)), (w', (0, MemoryHierarchy)), "");
-                  ((w', (0, MemoryHierarchy)), (i, Execute), "")])).
+      EdgesExist [((w , Writeback), (w', Writeback), "");
+                  ((w', Writeback), (i, Execute), "")])).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % END MODIFICATION REGION                                                     %
