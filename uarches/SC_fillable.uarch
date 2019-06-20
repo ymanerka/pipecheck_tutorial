@@ -68,8 +68,8 @@ Axiom "EnforceFinalWrite":
       AddEdge ((w, Writeback), (w', Writeback), "ws_final", "red").
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 2. All instructions on a core that are after a write in program order       %
-%    should execute after that write reaches memory.                          %
+% 2. All instructions on a core that are fetched after a write on that core   %
+%    is fetched should execute after that write completes its writeback stage.%
 %                                                                             %
 % Fill in the following axiom so that the above statement is true.            %
 %                                                                             %
@@ -88,7 +88,7 @@ Axiom "EnforceWritePPO":
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 3. If a read reads from the initial state of memory, it must execute before %
-%    any write to that address in the program reaches memory.                 %
+%    any write to that address in the program completes its writeback.        %
 %                                                                             %
 % Fill in the following axiom so that the above statement is true.            %
 % (Again, assume the read's identifier in the axiom is "i".)                  %
@@ -114,9 +114,9 @@ DefineMacro "Before_Or_After_Every_SameAddrWrite":
      AddEdge ((i, Execute), (w, Writeback), "fr", "red"))).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 4. A read must execute after its source write reaches memory, and there     %
-%    must not exist any writes to that address in between the source write    %
-%    and the execution of the read.                                           %
+% 4. A read must execute after its source write reaches memory (i.e.          %
+%    completes its writeback), and there must not exist any writes to that    %
+%    address in between the source write and the execution of the read.       %
 %                                                                             %
 % Fill in the following axiom so that the above statement is true.            %
 % (Again, assume the read's identifier in the axiom is "i".)                  %
