@@ -26,7 +26,7 @@
 %    rather than the Writeback stage.
 % 7. (Advanced) Allow a core to read the value of a write from its store buffer,
 %    before that write is made visible to other cores.
-% 8. (Extra) Implement a fence operation that flushes all prior writes to
+% 8. (Advanced) Implement a fence operation that flushes all prior writes to
 %    memory before any succeeding instructions can perform.
 
 StageName 0 "Fetch".
@@ -318,7 +318,7 @@ DefineMacro "STBFwd":
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
-% 8. (Extra) Implement a fence operation that flushes all prior writes to     %
+% 8. (Advanced) Implement a fence operation that flushes all prior writes to  %
 %    memory before any succeeding instructions can perform.                   %
 %                                                                             %
 % Add an axiom below detailing the operations of a fence instruction which    %
